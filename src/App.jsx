@@ -928,7 +928,7 @@ export default function PLYGRND() {
   const [activeTab, setActiveTab] = useState('poster');
 
   return (
-    <div className="min-h-screen bg-black flex flex-col font-mono selection:bg-white selection:text-black">
+    <div className="min-h-screen bg-zinc-100 flex flex-col font-mono selection:bg-black selection:text-white">
       {/* Master Navigation Bar */}
       <header className="h-[80px] bg-[#FFEA00] border-b-4 border-black flex items-center justify-between px-4 md:px-8 shrink-0 z-50">
         <div className="flex items-center gap-4">

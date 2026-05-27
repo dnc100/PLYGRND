@@ -1,4 +1,4 @@
-# vite-react-tailwindcss (template)
+# PLYGRND
 
 [Edit on StackBlitz ⚡️](https://stackblitz.com/edit/vite-react-tailwindcss)
 
