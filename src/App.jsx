@@ -75,7 +75,7 @@ function BrutalistPosterCreator() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] w-full bg-white text-black font-mono selection:bg-black selection:text-white">
+    <div className="grid grid-rows-[60%_40%] lg:grid-rows-[65%_35%] h-[calc(100vh-80px)] w-full bg-white text-black font-mono selection:bg-black selection:text-white">
       <style>{`
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; }
@@ -83,11 +83,21 @@ function BrutalistPosterCreator() {
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* TOP: Massive Canvas Viewport */}
-      <div className="flex-1 overflow-auto bg-zinc-200 border-b-4 border-black p-4 md:p-8 flex justify-center items-start inset-shadow">
+      {/* TOP: Fixed Canvas Viewport */}
+      <div className="relative overflow-hidden bg-zinc-200 border-b-4 border-black p-4 flex justify-center items-center inset-shadow z-0">
+        
+        {/* Floating Grid Toggle overlaying the canvas */}
+        <button 
+          onClick={() => setShowGridLines(!showGridLines)} 
+          className="absolute top-4 left-4 z-50 bg-black text-white px-3 py-2 text-[10px] font-black uppercase shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] border-2 border-white hover:scale-105 transition-transform"
+        >
+          {showGridLines ? '☒ HIDE STRUCTURAL GRID' : '☐ SHOW STRUCTURAL GRID'}
+        </button>
+
+        {/* Responsive Poster Container */}
         <div
           ref={posterRef}
-          className="shadow-[16px_16px_0px_0px_rgba(0,0,0,0.15)] transition-colors relative overflow-hidden flex-shrink-0"
+          className="shadow-[16px_16px_0px_0px_rgba(0,0,0,0.15)] transition-colors relative overflow-hidden"
           style={{
             backgroundColor: bgColor,
             color: textColor,
@@ -95,9 +105,8 @@ function BrutalistPosterCreator() {
             borderWidth: '4px',
             borderStyle: 'solid',
             padding: `${padding}px`,
-            width: '100%',
-            maxWidth: '650px',
-            aspectRatio: '1 / 1.414',
+            height: '100%',             // Forces it to fit container height perfectly
+            aspectRatio: '1 / 1.414',   // Locks the A4 proportion
           }}
         >
           <div className="w-full h-full grid grid-flow-row-dense"
@@ -125,7 +134,7 @@ function BrutalistPosterCreator() {
                     borderColor: isSelected ? borderColor : cellBorder,
                   }}
                 >
-                  <div className="w-full h-full flex p-3 pointer-events-none z-10 relative">
+                  <div className="w-full h-full flex p-2 md:p-3 pointer-events-none z-10 relative">
                     {!current?.type || current.type === 'text' ? (
                       <p className="font-sans font-bold leading-none tracking-tight whitespace-pre-wrap break-words"
                          style={{ fontSize: `${current?.fontSize || 16}px` }}>
@@ -146,17 +155,11 @@ function BrutalistPosterCreator() {
       </div>
 
       {/* BOTTOM: Dense Control Deck */}
-      <div className="shrink-0 bg-[#f4f4f0] p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20 max-h-[45vh] overflow-y-auto hide-scrollbar">
+      <div className="bg-[#f4f4f0] p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20 overflow-y-auto hide-scrollbar">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
-          {/* Col 1: Structure */}
           <div className="flex flex-col gap-3">
-            <div className="flex justify-between items-end border-b-2 border-black pb-1 mb-1">
-              <h2 className="text-sm font-black uppercase">Structure</h2>
-              <button onClick={() => setShowGridLines(!showGridLines)} className="text-[10px] font-bold bg-black text-white px-2 py-1 hover:bg-gray-800">
-                {showGridLines ? 'HIDE GRID' : 'SHOW GRID'}
-              </button>
-            </div>
+            <h2 className="text-sm font-black uppercase border-b-2 border-black pb-1">Structure</h2>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[9px] font-bold uppercase">Cols</label>
@@ -177,9 +180,8 @@ function BrutalistPosterCreator() {
             </div>
           </div>
 
-          {/* Col 2: Palette */}
           <div className="flex flex-col gap-3">
-             <h2 className="text-sm font-black uppercase border-b-2 border-black pb-1 mb-1">Palette</h2>
+             <h2 className="text-sm font-black uppercase border-b-2 border-black pb-1">Palette</h2>
              <div className="flex flex-wrap gap-2">
               {presets.map((p) => (
                 <button key={p.name} onClick={() => { setBgColor(p.bg); setTextColor(p.text); setBorderColor(p.border); }} className="w-6 h-6 border-2 border-black hover:scale-110 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: p.bg }} />
@@ -201,9 +203,8 @@ function BrutalistPosterCreator() {
             </div>
           </div>
 
-          {/* Col 3: Cell Editor */}
           <div className="flex flex-col gap-3">
-             <h2 className="text-sm font-black uppercase border-b-2 border-black pb-1 mb-1 flex justify-between">
+             <h2 className="text-sm font-black uppercase border-b-2 border-black pb-1 flex justify-between">
                Cell Editor {activeCell && <span className="text-blue-600">[{activeCell}]</span>}
              </h2>
              {activeCell ? (
@@ -230,7 +231,6 @@ function BrutalistPosterCreator() {
              )}
           </div>
 
-          {/* Col 4: Export */}
           <div className="flex flex-col gap-3 justify-end">
             <button id="export-poster-btn" onClick={handleExport} className="w-full bg-[#FF3300] border-4 border-black p-4 text-black font-black uppercase tracking-widest hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
               Export JPG
@@ -257,7 +257,6 @@ function InteractiveComponentFoundry() {
 
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef(null);
-  const p5Instance = useRef(null);
 
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; }, [config]);
@@ -322,121 +321,128 @@ export default function CustomBtn() {
 
   useEffect(() => {
     if (!canvasRef.current) return;
+    canvasRef.current.innerHTML = ''; // Wipe duplicates
     
-    // PRODUCTION FIX: Nuke any existing canvases inside the ref before starting
-    canvasRef.current.innerHTML = '';
+    let myP5;
 
-    const sketch = (p) => {
-      let isHovered = false; let clickTime = 0; let time = 0;
-      const NUM_NODES = 30; let blobNodes = [];
+    // FIX: Wait 50ms for CSS Grid layout to paint before measuring screen
+    const initTimer = setTimeout(() => {
+      const sketch = (p) => {
+        let isHovered = false; let clickTime = 0; let time = 0;
+        const NUM_NODES = 30; let blobNodes = [];
 
-      p.setup = () => {
-        // PRODUCTION FIX: Exact dimensions based on parent container
-        const rect = canvasRef.current.getBoundingClientRect();
-        const w = rect.width > 0 ? rect.width : 800;
-        const h = rect.height > 0 ? rect.height : 500;
-        
-        p.createCanvas(w, h);
-        p.rectMode(p.CENTER); p.imageMode(p.CENTER); p.textAlign(p.CENTER, p.CENTER);
-        for (let i = 0; i < NUM_NODES; i++) blobNodes.push({ angle: p.map(i, 0, NUM_NODES, 0, p.TWO_PI), ox: 0, oy: 0 });
-      };
+        p.setup = () => {
+          // Now rect is guaranteed to be accurate
+          const rect = canvasRef.current.getBoundingClientRect();
+          const w = rect.width > 0 ? rect.width : window.innerWidth;
+          const h = rect.height > 0 ? rect.height : window.innerHeight / 2;
+          
+          p.createCanvas(w, h);
+          p.rectMode(p.CENTER); p.imageMode(p.CENTER); p.textAlign(p.CENTER, p.CENTER);
+          for (let i = 0; i < NUM_NODES; i++) blobNodes.push({ angle: p.map(i, 0, NUM_NODES, 0, p.TWO_PI), ox: 0, oy: 0 });
+        };
 
-      p.windowResized = () => {
-        if(!canvasRef.current) return;
-        const rect = canvasRef.current.getBoundingClientRect();
-        if(rect.width > 0 && rect.height > 0) p.resizeCanvas(rect.width, rect.height);
-      };
+        p.windowResized = () => {
+          if(!canvasRef.current) return;
+          const rect = canvasRef.current.getBoundingClientRect();
+          if(rect.width > 0 && rect.height > 0) p.resizeCanvas(rect.width, rect.height);
+        };
 
-      const drawBlob = (xOff, yOff, width, height, color, isShadow) => {
-        p.push(); p.translate(xOff, yOff); p.fill(color);
-        if (isShadow) p.noStroke(); else { p.stroke(0); p.strokeWeight(4); }
-        p.beginShape();
-        let speed = isHovered ? 2 : 1;
-        for (let i = 0; i < NUM_NODES + 3; i++) {
-          let node = blobNodes[i % NUM_NODES];
-          let nx = p.cos(node.angle) + 1; let ny = p.sin(node.angle) + 1;
-          let n = p.noise(nx, ny, time * speed);
-          let rX = (width / 2) * p.map(n, 0, 1, 0.8, 1.2);
-          let rY = (height / 2) * p.map(n, 0, 1, 0.8, 1.2);
-          p.curveVertex(rX * p.cos(node.angle) + node.ox, rY * p.sin(node.angle) + node.oy);
-        }
-        p.endShape(); p.pop();
-      };
-
-      p.draw = () => {
-        const { shape, anim, buttonColor, textColor, label } = configRef.current;
-        p.clear(); time += 0.05;
-
-        const centerX = p.width / 2; const centerY = p.height / 2;
-        const baseWidth = shape === 'circle' ? 140 : 180;
-        const baseHeight = shape === 'circle' ? 140 : 60;
-
-        if (p.mouseX > centerX - baseWidth/2 && p.mouseX < centerX + baseWidth/2 && p.mouseY > centerY - baseHeight/2 && p.mouseY < centerY + baseHeight/2) {
-          if (!isHovered) { p.cursor(p.HAND); isHovered = true; }
-        } else {
-          if (isHovered) { p.cursor(p.ARROW); isHovered = false; }
-        }
-        if (p.mouseIsPressed && isHovered) clickTime = 1;
-
-        let wMod = 0; let hMod = 0; let xOff = 0; let yOff = 0;
-        const targetScale = isHovered ? 1.1 : 1.0;
-        const clickScale = clickTime > 0 ? 0.9 : 1.0;
-
-        if (anim === 'breathe') { wMod = p.sin(time)*10; hMod = p.cos(time)*5; }
-        else if (anim === 'glitch' && isHovered) { xOff = p.random(-4,4); yOff = p.random(-4,4); if (p.random(1)>0.8) wMod = p.random(-20,20); }
-        else if (anim === 'elastic') { wMod = isHovered ? p.sin(time*3)*15 : 0; }
-        if (clickTime > 0) clickTime -= 0.1;
-
-        const fW = (baseWidth + wMod) * targetScale * clickScale;
-        const fH = (baseHeight + hMod) * targetScale * clickScale;
-
-        if (shape === 'blob') {
-          for (let i = 0; i < NUM_NODES; i++) {
-            let node = blobNodes[i];
-            let n = p.noise(p.cos(node.angle)+1, p.sin(node.angle)+1, time*(isHovered?2:1));
-            let absX = centerX + xOff + ((fW/2)*p.map(n,0,1,0.8,1.2)*p.cos(node.angle)) + node.ox;
-            let absY = centerY + yOff + ((fH/2)*p.map(n,0,1,0.8,1.2)*p.sin(node.angle)) + node.oy;
-            if (p.mouseIsPressed && isHovered) {
-              let dx = p.mouseX - absX; let dy = p.mouseY - absY;
-              if (p.sqrt(dx*dx + dy*dy) < 100) { node.ox += dx*0.1; node.oy += dy*0.1; }
-            }
-            node.ox += (0 - node.ox) * 0.15; node.oy += (0 - node.oy) * 0.15;
+        const drawBlob = (xOff, yOff, width, height, color, isShadow) => {
+          p.push(); p.translate(xOff, yOff); p.fill(color);
+          if (isShadow) p.noStroke(); else { p.stroke(0); p.strokeWeight(4); }
+          p.beginShape();
+          let speed = isHovered ? 2 : 1;
+          for (let i = 0; i < NUM_NODES + 3; i++) {
+            let node = blobNodes[i % NUM_NODES];
+            let nx = p.cos(node.angle) + 1; let ny = p.sin(node.angle) + 1;
+            let n = p.noise(nx, ny, time * speed);
+            let rX = (width / 2) * p.map(n, 0, 1, 0.8, 1.2);
+            let rY = (height / 2) * p.map(n, 0, 1, 0.8, 1.2);
+            p.curveVertex(rX * p.cos(node.angle) + node.ox, rY * p.sin(node.angle) + node.oy);
           }
-        }
+          p.endShape(); p.pop();
+        };
 
-        p.push(); p.translate(centerX + xOff, centerY + yOff);
-        if (shape === 'blob') drawBlob(6, 6, fW, fH, '#000000', true);
-        else { p.fill(0); p.noStroke(); shape==='circle'?p.circle(6,6,fW):shape==='pill'?p.rect(6,6,fW,fH,fH/2):p.rect(6,6,fW,fH); }
-        
-        if (shape === 'blob') drawBlob(0, 0, fW, fH, buttonColor, false);
-        else { p.fill(buttonColor); p.stroke(0); p.strokeWeight(4); shape==='circle'?p.circle(0,0,fW):shape==='pill'?p.rect(0,0,fW,fH,fH/2):p.rect(0,0,fW,fH); }
+        p.draw = () => {
+          const { shape, anim, buttonColor, textColor, label } = configRef.current;
+          p.clear(); time += 0.05;
 
-        p.fill(textColor); p.noStroke(); p.textSize(16); p.textStyle(p.BOLD); p.textFont('monospace');
-        if (anim === 'glitch' && isHovered && p.random(1)>0.7) p.text(label.substring(0, label.length-1)+'@', p.random(-2,2), p.random(-2,2));
-        else p.text(label, 0, 0);
-        p.pop();
+          const centerX = p.width / 2; const centerY = p.height / 2;
+          const baseWidth = shape === 'circle' ? 140 : 180;
+          const baseHeight = shape === 'circle' ? 140 : 60;
+
+          if (p.mouseX > centerX - baseWidth/2 && p.mouseX < centerX + baseWidth/2 && p.mouseY > centerY - baseHeight/2 && p.mouseY < centerY + baseHeight/2) {
+            if (!isHovered) { p.cursor(p.HAND); isHovered = true; }
+          } else {
+            if (isHovered) { p.cursor(p.ARROW); isHovered = false; }
+          }
+          if (p.mouseIsPressed && isHovered) clickTime = 1;
+
+          let wMod = 0; let hMod = 0; let xOff = 0; let yOff = 0;
+          const targetScale = isHovered ? 1.1 : 1.0;
+          const clickScale = clickTime > 0 ? 0.9 : 1.0;
+
+          if (anim === 'breathe') { wMod = p.sin(time)*10; hMod = p.cos(time)*5; }
+          else if (anim === 'glitch' && isHovered) { xOff = p.random(-4,4); yOff = p.random(-4,4); if (p.random(1)>0.8) wMod = p.random(-20,20); }
+          else if (anim === 'elastic') { wMod = isHovered ? p.sin(time*3)*15 : 0; }
+          if (clickTime > 0) clickTime -= 0.1;
+
+          const fW = (baseWidth + wMod) * targetScale * clickScale;
+          const fH = (baseHeight + hMod) * targetScale * clickScale;
+
+          if (shape === 'blob') {
+            for (let i = 0; i < NUM_NODES; i++) {
+              let node = blobNodes[i];
+              let n = p.noise(p.cos(node.angle)+1, p.sin(node.angle)+1, time*(isHovered?2:1));
+              let absX = centerX + xOff + ((fW/2)*p.map(n,0,1,0.8,1.2)*p.cos(node.angle)) + node.ox;
+              let absY = centerY + yOff + ((fH/2)*p.map(n,0,1,0.8,1.2)*p.sin(node.angle)) + node.oy;
+              if (p.mouseIsPressed && isHovered) {
+                let dx = p.mouseX - absX; let dy = p.mouseY - absY;
+                if (p.sqrt(dx*dx + dy*dy) < 100) { node.ox += dx*0.1; node.oy += dy*0.1; }
+              }
+              node.ox += (0 - node.ox) * 0.15; node.oy += (0 - node.oy) * 0.15;
+            }
+          }
+
+          p.push(); p.translate(centerX + xOff, centerY + yOff);
+          if (shape === 'blob') drawBlob(6, 6, fW, fH, '#000000', true);
+          else { p.fill(0); p.noStroke(); shape==='circle'?p.circle(6,6,fW):shape==='pill'?p.rect(6,6,fW,fH,fH/2):p.rect(6,6,fW,fH); }
+          
+          if (shape === 'blob') drawBlob(0, 0, fW, fH, buttonColor, false);
+          else { p.fill(buttonColor); p.stroke(0); p.strokeWeight(4); shape==='circle'?p.circle(0,0,fW):shape==='pill'?p.rect(0,0,fW,fH,fH/2):p.rect(0,0,fW,fH); }
+
+          p.fill(textColor); p.noStroke(); p.textSize(16); p.textStyle(p.BOLD); p.textFont('monospace');
+          if (anim === 'glitch' && isHovered && p.random(1)>0.7) p.text(label.substring(0, label.length-1)+'@', p.random(-2,2), p.random(-2,2));
+          else p.text(label, 0, 0);
+          p.pop();
+        };
       };
-    };
 
-    p5Instance.current = new p5(sketch, canvasRef.current);
-    return () => { if (p5Instance.current) { p5Instance.current.remove(); p5Instance.current = null; } };
+      myP5 = new p5(sketch, canvasRef.current);
+    }, 50);
+
+    return () => { 
+      clearTimeout(initTimer);
+      if (myP5) myP5.remove(); 
+    };
   }, []);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] w-full bg-white text-black font-mono selection:bg-black selection:text-white">
-      {/* TOP: Massive Canvas Viewport */}
-      <div className="flex-1 overflow-hidden bg-zinc-200 border-b-4 border-black relative flex justify-center items-center inset-shadow">
+    <div className="grid grid-rows-[60%_40%] lg:grid-rows-[65%_35%] h-[calc(100vh-80px)] w-full bg-white text-black font-mono selection:bg-black selection:text-white">
+      {/* TOP: Fixed Canvas Viewport */}
+      <div className="relative overflow-hidden bg-zinc-200 border-b-4 border-black inset-shadow">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
         <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 text-[10px] font-black uppercase z-20 shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">Canvas.render()</div>
         <button onClick={randomizeAll} className="absolute top-4 right-4 bg-[#FFEA00] border-2 border-black px-4 py-1 text-[10px] font-black uppercase z-20 hover:scale-105 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform">
            Generate Random
         </button>
-        {/* Full width/height container for p5 to safely bind to */}
-        <div ref={canvasRef} className="w-full h-full z-10" />
+        {/* Full width/height container locked by Grid */}
+        <div ref={canvasRef} className="absolute inset-0 z-10 w-full h-full" />
       </div>
 
       {/* BOTTOM: Dense Control Deck */}
-      <div className="shrink-0 bg-white p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20 overflow-y-auto">
+      <div className="bg-white p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20 overflow-y-auto">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
           <div className="flex flex-col gap-2">
