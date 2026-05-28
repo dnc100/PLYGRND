@@ -67,26 +67,46 @@ function BrutalistPosterCreator() {
     }
   };
 
-  const gridCells = [];
+  // --- "EAT" ALGORITHM: Calculate spanned vs hidden cells ---
+  const hiddenCells = new Set();
+  const renderCells = [];
+
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < columns; c++) {
-      gridCells.push(`${r}-${c}`);
+      const key = `${r}-${c}`;
+      
+      // If this cell was absorbed by a previous span, skip rendering it
+      if (hiddenCells.has(key)) continue;
+
+      const current = cellData[key];
+      // Restrict spans so they don't break the outer grid limits
+      const cSpan = Math.min(current?.colSpan || 1, columns - c);
+      const rSpan = Math.min(current?.rowSpan || 1, rows - r);
+
+      // If this cell spans, "eat" the adjacent cells by marking them hidden
+      if (cSpan > 1 || rSpan > 1) {
+        for (let i = 0; i < rSpan; i++) {
+          for (let j = 0; j < cSpan; j++) {
+            if (i === 0 && j === 0) continue; // Don't hide the origin cell
+            hiddenCells.add(`${r + i}-${c + j}`);
+          }
+        }
+      }
+
+      renderCells.push({ key, current, cSpan, rSpan });
     }
   }
 
   return (
-    <div className="grid grid-rows-[60%_40%] lg:grid-rows-[65%_35%] h-[calc(100vh-80px)] w-full bg-white text-black font-mono selection:bg-black selection:text-white">
+    <div className="flex flex-col flex-1 w-full font-mono selection:bg-black selection:text-white">
       <style>{`
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       {/* TOP: Fixed Canvas Viewport */}
-      <div className="relative overflow-hidden bg-zinc-200 border-b-4 border-black p-4 flex justify-center items-center inset-shadow z-0">
+      <div className="flex-1 min-h-[50vh] md:min-h-[60vh] bg-zinc-200 border-b-4 border-black p-4 md:p-8 flex justify-center items-center inset-shadow relative z-0">
         
-        {/* Floating Grid Toggle overlaying the canvas */}
         <button 
           onClick={() => setShowGridLines(!showGridLines)} 
           className="absolute top-4 left-4 z-50 bg-black text-white px-3 py-2 text-[10px] font-black uppercase shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] border-2 border-white hover:scale-105 transition-transform"
@@ -94,7 +114,7 @@ function BrutalistPosterCreator() {
           {showGridLines ? '☒ HIDE STRUCTURAL GRID' : '☐ SHOW STRUCTURAL GRID'}
         </button>
 
-        {/* Responsive Poster Container */}
+        {/* Locked Dimensions Poster */}
         <div
           ref={posterRef}
           className="shadow-[16px_16px_0px_0px_rgba(0,0,0,0.15)] transition-colors relative overflow-hidden"
@@ -105,30 +125,28 @@ function BrutalistPosterCreator() {
             borderWidth: '4px',
             borderStyle: 'solid',
             padding: `${padding}px`,
-            height: '100%',             // Forces it to fit container height perfectly
-            aspectRatio: '1 / 1.414',   // Locks the A4 proportion
+            height: '100%',             // Locks strictly to parent flex height
+            maxHeight: '75vh',          // Ultimate safety cap
+            aspectRatio: '1 / 1.414',   // Width is purely derived from height
           }}
         >
-          <div className="w-full h-full grid grid-flow-row-dense"
+          <div className="w-full h-full grid"
             style={{
               gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
               gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
               gap: `${gap}px`,
             }}
           >
-            {gridCells.map((key) => {
-              const current = cellData[key];
+            {renderCells.map(({ key, current, cSpan, rSpan }) => {
               const isSelected = activeCell === key;
-              const colSpan = current?.colSpan || 1;
-              const rowSpan = current?.rowSpan || 1;
               const cellBorder = showGridLines ? `${borderColor}55` : 'transparent';
 
               return (
                 <div key={key} onClick={() => setActiveCell(key)}
                   className={`relative group cursor-pointer overflow-hidden flex flex-col transition-all ${isSelected ? 'scale-[0.98] z-10' : ''}`}
                   style={{
-                    gridColumn: `span ${colSpan}`,
-                    gridRow: `span ${rowSpan}`,
+                    gridColumn: `span ${cSpan}`,
+                    gridRow: `span ${rSpan}`,
                     borderWidth: '2px',
                     borderStyle: 'solid',
                     borderColor: isSelected ? borderColor : cellBorder,
@@ -154,8 +172,8 @@ function BrutalistPosterCreator() {
         </div>
       </div>
 
-      {/* BOTTOM: Dense Control Deck */}
-      <div className="bg-[#f4f4f0] p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20 overflow-y-auto hide-scrollbar">
+      {/* BOTTOM: Scrollable Control Deck */}
+      <div className="shrink-0 bg-[#f4f4f0] p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
           <div className="flex flex-col gap-3">
@@ -225,7 +243,7 @@ function BrutalistPosterCreator() {
                   <input type="number" placeholder="H-Span" value={cellData[activeCell]?.rowSpan || 1} onChange={(e) => handleCellChange(activeCell, 'rowSpan', parseInt(e.target.value))} className="border-2 border-black p-1 text-xs text-center" title="Height Span" />
                </div>
              ) : (
-               <div className="h-full border-2 border-dashed border-gray-400 flex items-center justify-center text-[10px] text-gray-500 font-bold p-4 text-center">
+               <div className="h-full border-2 border-dashed border-gray-400 flex items-center justify-center text-[10px] text-gray-500 font-bold p-4 text-center bg-white">
                  Select a cell above to edit
                </div>
              )}
@@ -257,7 +275,8 @@ function InteractiveComponentFoundry() {
 
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef(null);
-
+  
+  // Safe ref pointer for p5 to read react state without tearing
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; }, [config]);
 
@@ -321,21 +340,21 @@ export default function CustomBtn() {
 
   useEffect(() => {
     if (!canvasRef.current) return;
-    canvasRef.current.innerHTML = ''; // Wipe duplicates
-    
+    canvasRef.current.innerHTML = ''; 
     let myP5;
 
-    // FIX: Wait 50ms for CSS Grid layout to paint before measuring screen
+    // Bulletproof initialization timer
     const initTimer = setTimeout(() => {
       const sketch = (p) => {
         let isHovered = false; let clickTime = 0; let time = 0;
         const NUM_NODES = 30; let blobNodes = [];
 
         p.setup = () => {
-          // Now rect is guaranteed to be accurate
-          const rect = canvasRef.current.getBoundingClientRect();
-          const w = rect.width > 0 ? rect.width : window.innerWidth;
-          const h = rect.height > 0 ? rect.height : window.innerHeight / 2;
+          // Explicitly calculate physical node boundaries
+          let w = canvasRef.current?.offsetWidth;
+          let h = canvasRef.current?.offsetHeight;
+          if (!w || w < 100) w = window.innerWidth;
+          if (!h || h < 100) h = 500;
           
           p.createCanvas(w, h);
           p.rectMode(p.CENTER); p.imageMode(p.CENTER); p.textAlign(p.CENTER, p.CENTER);
@@ -344,8 +363,9 @@ export default function CustomBtn() {
 
         p.windowResized = () => {
           if(!canvasRef.current) return;
-          const rect = canvasRef.current.getBoundingClientRect();
-          if(rect.width > 0 && rect.height > 0) p.resizeCanvas(rect.width, rect.height);
+          const w = canvasRef.current.offsetWidth;
+          const h = canvasRef.current.offsetHeight;
+          if(w > 0 && h > 0) p.resizeCanvas(w, h);
         };
 
         const drawBlob = (xOff, yOff, width, height, color, isShadow) => {
@@ -420,7 +440,7 @@ export default function CustomBtn() {
       };
 
       myP5 = new p5(sketch, canvasRef.current);
-    }, 50);
+    }, 100);
 
     return () => { 
       clearTimeout(initTimer);
@@ -429,20 +449,20 @@ export default function CustomBtn() {
   }, []);
 
   return (
-    <div className="grid grid-rows-[60%_40%] lg:grid-rows-[65%_35%] h-[calc(100vh-80px)] w-full bg-white text-black font-mono selection:bg-black selection:text-white">
+    <div className="flex flex-col flex-1 w-full font-mono selection:bg-black selection:text-white">
       {/* TOP: Fixed Canvas Viewport */}
-      <div className="relative overflow-hidden bg-zinc-200 border-b-4 border-black inset-shadow">
+      <div className="flex-1 min-h-[50vh] md:min-h-[60vh] relative overflow-hidden bg-zinc-200 border-b-4 border-black inset-shadow z-0">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
         <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 text-[10px] font-black uppercase z-20 shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">Canvas.render()</div>
         <button onClick={randomizeAll} className="absolute top-4 right-4 bg-[#FFEA00] border-2 border-black px-4 py-1 text-[10px] font-black uppercase z-20 hover:scale-105 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform">
            Generate Random
         </button>
-        {/* Full width/height container locked by Grid */}
+        {/* Full width/height explicitly defined node for p5 */}
         <div ref={canvasRef} className="absolute inset-0 z-10 w-full h-full" />
       </div>
 
-      {/* BOTTOM: Dense Control Deck */}
-      <div className="bg-white p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20 overflow-y-auto">
+      {/* BOTTOM: Scrollable Control Deck */}
+      <div className="shrink-0 bg-white p-4 md:p-6 shadow-[0px_-8px_0px_0px_rgba(0,0,0,1)] z-20">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
           <div className="flex flex-col gap-2">
@@ -490,8 +510,8 @@ export default function PLYGRND() {
   const [activeTab, setActiveTab] = useState('poster');
 
   return (
-    <div className="min-h-screen h-screen overflow-hidden bg-zinc-100 flex flex-col font-mono selection:bg-black selection:text-white">
-      <header className="h-[80px] bg-[#FFEA00] border-b-4 border-black flex items-center justify-between px-4 md:px-8 shrink-0 z-50">
+    <div className="min-h-screen bg-zinc-100 flex flex-col font-mono selection:bg-black selection:text-white">
+      <header className="h-[80px] bg-[#FFEA00] border-b-4 border-black flex items-center justify-between px-4 md:px-8 shrink-0 z-50 sticky top-0">
         <div className="flex items-center gap-4">
           <div className="hidden md:flex gap-1">
             <div className="w-3 h-3 bg-black rounded-full"></div>
@@ -506,7 +526,7 @@ export default function PLYGRND() {
         </div>
       </header>
 
-      <main className="flex-1 w-full bg-zinc-100 relative">
+      <main className="flex-1 w-full flex flex-col relative">
         {activeTab === 'poster' ? <BrutalistPosterCreator /> : <InteractiveComponentFoundry />}
       </main>
     </div>
