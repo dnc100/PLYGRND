@@ -67,7 +67,7 @@ function BrutalistPosterCreator() {
     }
   };
 
-  // --- "EAT" ALGORITHM: Calculate spanned vs hidden cells ---
+  // --- "EAT" ALGORITHM: Calculates spanned vs hidden cells ---
   const hiddenCells = new Set();
   const renderCells = [];
 
@@ -105,7 +105,7 @@ function BrutalistPosterCreator() {
       `}</style>
 
       {/* TOP: Fixed Canvas Viewport */}
-      <div className="flex-1 min-h-[50vh] md:min-h-[60vh] bg-zinc-200 border-b-4 border-black p-4 md:p-8 flex justify-center items-center inset-shadow relative z-0">
+      <div className="flex-1 min-h-[50vh] md:min-h-[60vh] bg-zinc-200 border-b-4 border-black p-4 md:p-8 flex justify-center items-center overflow-hidden relative z-0">
         
         <button 
           onClick={() => setShowGridLines(!showGridLines)} 
@@ -114,60 +114,66 @@ function BrutalistPosterCreator() {
           {showGridLines ? '☒ HIDE STRUCTURAL GRID' : '☐ SHOW STRUCTURAL GRID'}
         </button>
 
-        {/* Locked Dimensions Poster */}
+        {/* FIX 1: Strictly separated boundaries.
+          Outer div manages Aspect Ratio and Borders ONLY.
+        */}
         <div
           ref={posterRef}
-          className="shadow-[16px_16px_0px_0px_rgba(0,0,0,0.15)] transition-colors relative overflow-hidden"
+          className="relative shadow-[16px_16px_0px_0px_rgba(0,0,0,0.15)] flex flex-col box-border"
           style={{
             backgroundColor: bgColor,
-            color: textColor,
             borderColor: borderColor,
             borderWidth: '4px',
             borderStyle: 'solid',
-            padding: `${padding}px`,
-            height: '100%',             // Locks strictly to parent flex height
-            maxHeight: '75vh',          // Ultimate safety cap
-            aspectRatio: '1 / 1.414',   // Width is purely derived from height
+            height: '100%',             
+            maxHeight: '100%',          
+            aspectRatio: '1 / 1.414',   
           }}
         >
-          <div className="w-full h-full grid"
-            style={{
-              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-              gap: `${gap}px`,
-            }}
-          >
-            {renderCells.map(({ key, current, cSpan, rSpan }) => {
-              const isSelected = activeCell === key;
-              const cellBorder = showGridLines ? `${borderColor}55` : 'transparent';
+          {/* FIX 2: Inner div manages Padding ONLY, forcing grid to stay inside limits */}
+          <div className="flex-1 w-full h-full flex flex-col overflow-hidden box-border" style={{ padding: `${padding}px` }}>
+            
+            {/* FIX 3: Grid and children have min-h-0 to prevent implicit blowout */}
+            <div className="flex-1 w-full h-full grid min-h-0 min-w-0"
+              style={{
+                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+                gap: `${gap}px`,
+              }}
+            >
+              {renderCells.map(({ key, current, cSpan, rSpan }) => {
+                const isSelected = activeCell === key;
+                const cellBorder = showGridLines ? `${borderColor}55` : 'transparent';
 
-              return (
-                <div key={key} onClick={() => setActiveCell(key)}
-                  className={`relative group cursor-pointer overflow-hidden flex flex-col transition-all ${isSelected ? 'scale-[0.98] z-10' : ''}`}
-                  style={{
-                    gridColumn: `span ${cSpan}`,
-                    gridRow: `span ${rSpan}`,
-                    borderWidth: '2px',
-                    borderStyle: 'solid',
-                    borderColor: isSelected ? borderColor : cellBorder,
-                  }}
-                >
-                  <div className="w-full h-full flex p-2 md:p-3 pointer-events-none z-10 relative">
-                    {!current?.type || current.type === 'text' ? (
-                      <p className="font-sans font-bold leading-none tracking-tight whitespace-pre-wrap break-words"
-                         style={{ fontSize: `${current?.fontSize || 16}px` }}>
-                        {current?.text || ''}
-                      </p>
-                    ) : (
-                      current?.imgUrl && <img src={current.imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                return (
+                  <div key={key} onClick={() => setActiveCell(key)}
+                    className={`relative group cursor-pointer overflow-hidden flex flex-col min-w-0 min-h-0 transition-all ${isSelected ? 'scale-[0.98] z-10' : ''}`}
+                    style={{
+                      gridColumn: `span ${cSpan}`,
+                      gridRow: `span ${rSpan}`,
+                      borderWidth: '2px',
+                      borderStyle: 'solid',
+                      borderColor: isSelected ? borderColor : cellBorder,
+                    }}
+                  >
+                    <div className="w-full h-full flex p-2 md:p-3 pointer-events-none z-10 relative overflow-hidden">
+                      {!current?.type || current.type === 'text' ? (
+                        <p className="font-sans font-bold leading-none tracking-tight whitespace-pre-wrap break-words w-full h-full overflow-hidden"
+                           style={{ fontSize: `${current?.fontSize || 16}px` }}>
+                          {current?.text || ''}
+                        </p>
+                      ) : (
+                        current?.imgUrl && <img src={current.imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      )}
+                    </div>
+                    {!current?.text && !current?.imgUrl && showGridLines && (
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black opacity-20 text-current mix-blend-difference">+</span>
                     )}
                   </div>
-                  {!current?.text && !current?.imgUrl && showGridLines && (
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black opacity-20 text-current mix-blend-difference">+</span>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
           </div>
         </div>
       </div>
@@ -239,8 +245,8 @@ function BrutalistPosterCreator() {
                       UPLOAD IMAGE <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, activeCell)} />
                     </label>
                   )}
-                  <input type="number" placeholder="W-Span" value={cellData[activeCell]?.colSpan || 1} onChange={(e) => handleCellChange(activeCell, 'colSpan', parseInt(e.target.value))} className="border-2 border-black p-1 text-xs text-center" title="Width Span" />
-                  <input type="number" placeholder="H-Span" value={cellData[activeCell]?.rowSpan || 1} onChange={(e) => handleCellChange(activeCell, 'rowSpan', parseInt(e.target.value))} className="border-2 border-black p-1 text-xs text-center" title="Height Span" />
+                  <input type="number" min="1" placeholder="W-Span" value={cellData[activeCell]?.colSpan || 1} onChange={(e) => handleCellChange(activeCell, 'colSpan', parseInt(e.target.value))} className="border-2 border-black p-1 text-xs text-center" title="Width Span" />
+                  <input type="number" min="1" placeholder="H-Span" value={cellData[activeCell]?.rowSpan || 1} onChange={(e) => handleCellChange(activeCell, 'rowSpan', parseInt(e.target.value))} className="border-2 border-black p-1 text-xs text-center" title="Height Span" />
                </div>
              ) : (
                <div className="h-full border-2 border-dashed border-gray-400 flex items-center justify-center text-[10px] text-gray-500 font-bold p-4 text-center bg-white">
@@ -276,7 +282,6 @@ function InteractiveComponentFoundry() {
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef(null);
   
-  // Safe ref pointer for p5 to read react state without tearing
   const configRef = useRef(config);
   useEffect(() => { configRef.current = config; }, [config]);
 
@@ -338,127 +343,119 @@ export default function CustomBtn() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // FIX 4: Removed the async timeout trick. Bound p5 directly to the DOM for immediate rendering.
   useEffect(() => {
     if (!canvasRef.current) return;
     canvasRef.current.innerHTML = ''; 
-    let myP5;
+    
+    const sketch = (p) => {
+      let isHovered = false; let clickTime = 0; let time = 0;
+      const NUM_NODES = 30; let blobNodes = [];
 
-    // Bulletproof initialization timer
-    const initTimer = setTimeout(() => {
-      const sketch = (p) => {
-        let isHovered = false; let clickTime = 0; let time = 0;
-        const NUM_NODES = 30; let blobNodes = [];
-
-        p.setup = () => {
-          // Explicitly calculate physical node boundaries
-          let w = canvasRef.current?.offsetWidth;
-          let h = canvasRef.current?.offsetHeight;
-          if (!w || w < 100) w = window.innerWidth;
-          if (!h || h < 100) h = 500;
-          
-          p.createCanvas(w, h);
-          p.rectMode(p.CENTER); p.imageMode(p.CENTER); p.textAlign(p.CENTER, p.CENTER);
-          for (let i = 0; i < NUM_NODES; i++) blobNodes.push({ angle: p.map(i, 0, NUM_NODES, 0, p.TWO_PI), ox: 0, oy: 0 });
-        };
-
-        p.windowResized = () => {
-          if(!canvasRef.current) return;
-          const w = canvasRef.current.offsetWidth;
-          const h = canvasRef.current.offsetHeight;
-          if(w > 0 && h > 0) p.resizeCanvas(w, h);
-        };
-
-        const drawBlob = (xOff, yOff, width, height, color, isShadow) => {
-          p.push(); p.translate(xOff, yOff); p.fill(color);
-          if (isShadow) p.noStroke(); else { p.stroke(0); p.strokeWeight(4); }
-          p.beginShape();
-          let speed = isHovered ? 2 : 1;
-          for (let i = 0; i < NUM_NODES + 3; i++) {
-            let node = blobNodes[i % NUM_NODES];
-            let nx = p.cos(node.angle) + 1; let ny = p.sin(node.angle) + 1;
-            let n = p.noise(nx, ny, time * speed);
-            let rX = (width / 2) * p.map(n, 0, 1, 0.8, 1.2);
-            let rY = (height / 2) * p.map(n, 0, 1, 0.8, 1.2);
-            p.curveVertex(rX * p.cos(node.angle) + node.ox, rY * p.sin(node.angle) + node.oy);
-          }
-          p.endShape(); p.pop();
-        };
-
-        p.draw = () => {
-          const { shape, anim, buttonColor, textColor, label } = configRef.current;
-          p.clear(); time += 0.05;
-
-          const centerX = p.width / 2; const centerY = p.height / 2;
-          const baseWidth = shape === 'circle' ? 140 : 180;
-          const baseHeight = shape === 'circle' ? 140 : 60;
-
-          if (p.mouseX > centerX - baseWidth/2 && p.mouseX < centerX + baseWidth/2 && p.mouseY > centerY - baseHeight/2 && p.mouseY < centerY + baseHeight/2) {
-            if (!isHovered) { p.cursor(p.HAND); isHovered = true; }
-          } else {
-            if (isHovered) { p.cursor(p.ARROW); isHovered = false; }
-          }
-          if (p.mouseIsPressed && isHovered) clickTime = 1;
-
-          let wMod = 0; let hMod = 0; let xOff = 0; let yOff = 0;
-          const targetScale = isHovered ? 1.1 : 1.0;
-          const clickScale = clickTime > 0 ? 0.9 : 1.0;
-
-          if (anim === 'breathe') { wMod = p.sin(time)*10; hMod = p.cos(time)*5; }
-          else if (anim === 'glitch' && isHovered) { xOff = p.random(-4,4); yOff = p.random(-4,4); if (p.random(1)>0.8) wMod = p.random(-20,20); }
-          else if (anim === 'elastic') { wMod = isHovered ? p.sin(time*3)*15 : 0; }
-          if (clickTime > 0) clickTime -= 0.1;
-
-          const fW = (baseWidth + wMod) * targetScale * clickScale;
-          const fH = (baseHeight + hMod) * targetScale * clickScale;
-
-          if (shape === 'blob') {
-            for (let i = 0; i < NUM_NODES; i++) {
-              let node = blobNodes[i];
-              let n = p.noise(p.cos(node.angle)+1, p.sin(node.angle)+1, time*(isHovered?2:1));
-              let absX = centerX + xOff + ((fW/2)*p.map(n,0,1,0.8,1.2)*p.cos(node.angle)) + node.ox;
-              let absY = centerY + yOff + ((fH/2)*p.map(n,0,1,0.8,1.2)*p.sin(node.angle)) + node.oy;
-              if (p.mouseIsPressed && isHovered) {
-                let dx = p.mouseX - absX; let dy = p.mouseY - absY;
-                if (p.sqrt(dx*dx + dy*dy) < 100) { node.ox += dx*0.1; node.oy += dy*0.1; }
-              }
-              node.ox += (0 - node.ox) * 0.15; node.oy += (0 - node.oy) * 0.15;
-            }
-          }
-
-          p.push(); p.translate(centerX + xOff, centerY + yOff);
-          if (shape === 'blob') drawBlob(6, 6, fW, fH, '#000000', true);
-          else { p.fill(0); p.noStroke(); shape==='circle'?p.circle(6,6,fW):shape==='pill'?p.rect(6,6,fW,fH,fH/2):p.rect(6,6,fW,fH); }
-          
-          if (shape === 'blob') drawBlob(0, 0, fW, fH, buttonColor, false);
-          else { p.fill(buttonColor); p.stroke(0); p.strokeWeight(4); shape==='circle'?p.circle(0,0,fW):shape==='pill'?p.rect(0,0,fW,fH,fH/2):p.rect(0,0,fW,fH); }
-
-          p.fill(textColor); p.noStroke(); p.textSize(16); p.textStyle(p.BOLD); p.textFont('monospace');
-          if (anim === 'glitch' && isHovered && p.random(1)>0.7) p.text(label.substring(0, label.length-1)+'@', p.random(-2,2), p.random(-2,2));
-          else p.text(label, 0, 0);
-          p.pop();
-        };
+      p.setup = () => {
+        // Read physical container boundaries immediately
+        const container = canvasRef.current;
+        const w = container ? container.clientWidth : window.innerWidth;
+        const h = container ? container.clientHeight : 500;
+        
+        p.createCanvas(w, h);
+        p.rectMode(p.CENTER); p.imageMode(p.CENTER); p.textAlign(p.CENTER, p.CENTER);
+        for (let i = 0; i < NUM_NODES; i++) blobNodes.push({ angle: p.map(i, 0, NUM_NODES, 0, p.TWO_PI), ox: 0, oy: 0 });
       };
 
-      myP5 = new p5(sketch, canvasRef.current);
-    }, 100);
+      p.windowResized = () => {
+        if(!canvasRef.current) return;
+        const w = canvasRef.current.clientWidth;
+        const h = canvasRef.current.clientHeight;
+        if(w > 0 && h > 0) p.resizeCanvas(w, h);
+      };
 
-    return () => { 
-      clearTimeout(initTimer);
-      if (myP5) myP5.remove(); 
+      const drawBlob = (xOff, yOff, width, height, color, isShadow) => {
+        p.push(); p.translate(xOff, yOff); p.fill(color);
+        if (isShadow) p.noStroke(); else { p.stroke(0); p.strokeWeight(4); }
+        p.beginShape();
+        let speed = isHovered ? 2 : 1;
+        for (let i = 0; i < NUM_NODES + 3; i++) {
+          let node = blobNodes[i % NUM_NODES];
+          let nx = p.cos(node.angle) + 1; let ny = p.sin(node.angle) + 1;
+          let n = p.noise(nx, ny, time * speed);
+          let rX = (width / 2) * p.map(n, 0, 1, 0.8, 1.2);
+          let rY = (height / 2) * p.map(n, 0, 1, 0.8, 1.2);
+          p.curveVertex(rX * p.cos(node.angle) + node.ox, rY * p.sin(node.angle) + node.oy);
+        }
+        p.endShape(); p.pop();
+      };
+
+      p.draw = () => {
+        const { shape, anim, buttonColor, textColor, label } = configRef.current;
+        p.clear(); time += 0.05;
+
+        const centerX = p.width / 2; const centerY = p.height / 2;
+        const baseWidth = shape === 'circle' ? 140 : 180;
+        const baseHeight = shape === 'circle' ? 140 : 60;
+
+        if (p.mouseX > centerX - baseWidth/2 && p.mouseX < centerX + baseWidth/2 && p.mouseY > centerY - baseHeight/2 && p.mouseY < centerY + baseHeight/2) {
+          if (!isHovered) { p.cursor(p.HAND); isHovered = true; }
+        } else {
+          if (isHovered) { p.cursor(p.ARROW); isHovered = false; }
+        }
+        if (p.mouseIsPressed && isHovered) clickTime = 1;
+
+        let wMod = 0; let hMod = 0; let xOff = 0; let yOff = 0;
+        const targetScale = isHovered ? 1.1 : 1.0;
+        const clickScale = clickTime > 0 ? 0.9 : 1.0;
+
+        if (anim === 'breathe') { wMod = p.sin(time)*10; hMod = p.cos(time)*5; }
+        else if (anim === 'glitch' && isHovered) { xOff = p.random(-4,4); yOff = p.random(-4,4); if (p.random(1)>0.8) wMod = p.random(-20,20); }
+        else if (anim === 'elastic') { wMod = isHovered ? p.sin(time*3)*15 : 0; }
+        if (clickTime > 0) clickTime -= 0.1;
+
+        const fW = (baseWidth + wMod) * targetScale * clickScale;
+        const fH = (baseHeight + hMod) * targetScale * clickScale;
+
+        if (shape === 'blob') {
+          for (let i = 0; i < NUM_NODES; i++) {
+            let node = blobNodes[i];
+            let n = p.noise(p.cos(node.angle)+1, p.sin(node.angle)+1, time*(isHovered?2:1));
+            let absX = centerX + xOff + ((fW/2)*p.map(n,0,1,0.8,1.2)*p.cos(node.angle)) + node.ox;
+            let absY = centerY + yOff + ((fH/2)*p.map(n,0,1,0.8,1.2)*p.sin(node.angle)) + node.oy;
+            if (p.mouseIsPressed && isHovered) {
+              let dx = p.mouseX - absX; let dy = p.mouseY - absY;
+              if (p.sqrt(dx*dx + dy*dy) < 100) { node.ox += dx*0.1; node.oy += dy*0.1; }
+            }
+            node.ox += (0 - node.ox) * 0.15; node.oy += (0 - node.oy) * 0.15;
+          }
+        }
+
+        p.push(); p.translate(centerX + xOff, centerY + yOff);
+        if (shape === 'blob') drawBlob(6, 6, fW, fH, '#000000', true);
+        else { p.fill(0); p.noStroke(); shape==='circle'?p.circle(6,6,fW):shape==='pill'?p.rect(6,6,fW,fH,fH/2):p.rect(6,6,fW,fH); }
+        
+        if (shape === 'blob') drawBlob(0, 0, fW, fH, buttonColor, false);
+        else { p.fill(buttonColor); p.stroke(0); p.strokeWeight(4); shape==='circle'?p.circle(0,0,fW):shape==='pill'?p.rect(0,0,fW,fH,fH/2):p.rect(0,0,fW,fH); }
+
+        p.fill(textColor); p.noStroke(); p.textSize(16); p.textStyle(p.BOLD); p.textFont('monospace');
+        if (anim === 'glitch' && isHovered && p.random(1)>0.7) p.text(label.substring(0, label.length-1)+'@', p.random(-2,2), p.random(-2,2));
+        else p.text(label, 0, 0);
+        p.pop();
+      };
     };
+
+    const myP5 = new p5(sketch, canvasRef.current);
+    return () => { myP5.remove(); };
   }, []);
 
   return (
     <div className="flex flex-col flex-1 w-full font-mono selection:bg-black selection:text-white">
       {/* TOP: Fixed Canvas Viewport */}
-      <div className="flex-1 min-h-[50vh] md:min-h-[60vh] relative overflow-hidden bg-zinc-200 border-b-4 border-black inset-shadow z-0">
+      <div className="flex-1 min-h-[50vh] md:min-h-[60vh] relative overflow-hidden bg-zinc-200 border-b-4 border-black inset-shadow z-0 flex">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-        <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 text-[10px] font-black uppercase z-20 shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">Canvas.render()</div>
+        <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 text-[10px] font-black uppercase z-20 shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] pointer-events-none">Canvas.render()</div>
         <button onClick={randomizeAll} className="absolute top-4 right-4 bg-[#FFEA00] border-2 border-black px-4 py-1 text-[10px] font-black uppercase z-20 hover:scale-105 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform">
            Generate Random
         </button>
-        {/* Full width/height explicitly defined node for p5 */}
-        <div ref={canvasRef} className="absolute inset-0 z-10 w-full h-full" />
+        {/* Container explicitly forced to display as block so p5 can immediately read dimensions */}
+        <div ref={canvasRef} className="absolute inset-0 z-10 w-full h-full block" />
       </div>
 
       {/* BOTTOM: Scrollable Control Deck */}
